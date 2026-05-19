@@ -7,7 +7,7 @@ import { authAPI, setAuthToken } from '../api';
 interface Props {
   db: AppState;
   onLogin: (user: User, token?: string) => void;
-  onRegister: (user: User) => void;
+  onRegister: (user: User, token?: string) => void;
 }
 
 const AuthPage: React.FC<Props> = ({ db, onLogin, onRegister }) => {
@@ -64,7 +64,7 @@ const AuthPage: React.FC<Props> = ({ db, onLogin, onRegister }) => {
         if (!user.isApproved) {
           alert('ההרשמה בוצעה בהצלחה! המשתמש נוצר עם הרשאה "לקוח" וממתין לאישור מנהל. תקבל התראה כאשר החשבון יאושר.');
         }
-        onRegister(user);
+        onRegister(user, result.token);
       }
     } catch (error: any) {
       console.error('Google auth error:', error);
@@ -287,12 +287,12 @@ const AuthPage: React.FC<Props> = ({ db, onLogin, onRegister }) => {
             userSettingsId: result.user.userSettingsId,
             userSettings: result.user.userSettings,
             isActive: result.user.isActive !== false,
-            isApproved: result.user.isApproved || false,
+            isApproved: result.user.isApproved === true,
             createdAt: result.user.createdAt || new Date().toISOString().split('T')[0],
             preferredLanguage: result.user.preferredLanguage || 'he',
             googleCalendarLinked: result.user.googleCalendarLinked || false
           };
-          onRegister(newUser);
+          onRegister(newUser, result.token);
         } catch (error: any) {
           alert(error.message || 'שגיאה בהרשמה');
         }

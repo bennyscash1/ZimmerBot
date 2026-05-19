@@ -8,6 +8,7 @@
     "start": "node 1-server-express.js",
     "dev": "node --watch 1-server-express.js",
     "fix-passwords": "node utils/fixPassword.js",
+    "create-admin": "node scripts/create-admin.js",
    
     "check-ip": "node utils/checkIP.js",
     "test": "echo \"Error: no test specified\" && exit 1"

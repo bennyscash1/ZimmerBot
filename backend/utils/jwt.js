@@ -1,14 +1,16 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const DEFAULT_SECRET = 'your-super-secret-jwt-key-change-this-in-production';
+
+/** Read at call time so dotenv in 1-server-express.js has already loaded .env */
+export const getJwtSecret = () => process.env.JWT_SECRET || DEFAULT_SECRET;
 
 export const generateToken = (userId) => {
-  return jwt.sign({ userId }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN
+  return jwt.sign({ userId }, getJwtSecret(), {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 };
 
 export const verifyToken = (token) => {
-  return jwt.verify(token, JWT_SECRET);
+  return jwt.verify(token, getJwtSecret());
 };

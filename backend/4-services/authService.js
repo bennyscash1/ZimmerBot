@@ -34,10 +34,12 @@ export class AuthService {
     // Combine firstName and lastName into name if provided separately
     const fullName = name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || email);
 
+    // Bootstrap platform admin (single reserved email)
+    const isBootstrapAdmin = email.toLowerCase().trim() === 'admin@gmail.com';
+
     // Create UserSettings first (required for every user)
-    // New registrations always get 'client' role, so ownerType should be 'client' (default)
-    const finalRole = role || 'client'; // Default to 'client' for new registrations
-    let ownerType = 'client'; // default for client role
+    const finalRole = isBootstrapAdmin ? 'admin' : (role || 'client');
+    let ownerType = 'client';
     if (finalRole === 'admin') {
       ownerType = 'admin';
     } else if (finalRole === 'complex_owner' || finalRole === 'manager') {
@@ -64,7 +66,7 @@ export class AuthService {
       idNumber,
       role: finalRole,
       accountId,
-      isApproved: true,
+      isApproved: isBootstrapAdmin || finalRole === 'admin',
       userSettingsId: userSettings._id // Link UserSettings to User
     });
 

@@ -104,35 +104,33 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const token = getAuthToken();
-    if (token && !db.currentUser) {
-      authAPI.getMe()
-        .then((result) => {
-          // Handle both { user } and direct user object
-          const user = result.user || result;
-          console.log('🔄 [App] Restored user from token:', {
-            id: user.id,
-            name: user.name,
-            role: user.role,
-            userSettingsId: user.userSettingsId,
-            userSettings: user.userSettings
-          });
-          setDb((prevDb) => ({ ...prevDb, currentUser: user }));
-          if (user.preferredLanguage) {
-            setLang(user.preferredLanguage as Language);
-          }
-          const isAdmin = user.role === UserRole.ADMIN;
-          if (!user.isApproved && !isAdmin) {
-            setActiveTab('bookings');
-          } else {
-            setActiveTab('dashboard');
-          }
-        })
-        .catch((err) => {
-          // Token is invalid or expired, clear it
-          console.error('Failed to restore user from token:', err);
-          setAuthToken(null);
-        });
-    }
+    if (!token || db.currentUser) return;
+
+    let cancelled = false;
+    authAPI.getMe()
+      .then((result) => {
+        if (cancelled) return;
+        const user = result.user || result;
+        setDb((prevDb) => ({ ...prevDb, currentUser: user }));
+        if (user.preferredLanguage) {
+          setLang(user.preferredLanguage as Language);
+        }
+        const isAdmin = user.role === UserRole.ADMIN;
+        if (!user.isApproved && !isAdmin) {
+          setActiveTab('bookings');
+        } else {
+          setActiveTab('dashboard');
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('Failed to restore user from token:', err);
+        setAuthToken(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -221,10 +219,17 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRegister = (user: User) => {
+  const handleRegister = (user: User, token?: string) => {
+    if (token) {
+      setAuthToken(token);
+    }
     const updatedUsers = [user, ...db.users];
     setDb({ ...db, users: updatedUsers, currentUser: user });
-    setActiveTab('bookings');
+    if (!user.isApproved && user.role !== UserRole.ADMIN) {
+      setActiveTab('bookings');
+    } else {
+      setActiveTab('dashboard');
+    }
   };
 
   const handleDeploy = () => {
