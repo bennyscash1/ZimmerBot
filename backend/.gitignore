@@ -1,0 +1,15 @@
+node_modules/
+.env
+*.log
+.DS_Store
+dist/
+# env files
+.env
+# .env.*
+*:Zone.Identifier
+# Local / sensitive files
+# backend/5-repositories/db.js
+
+# Windows junk
+
+Untitled
