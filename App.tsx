@@ -49,15 +49,7 @@ const App: React.FC = () => {
     path === '/lodgings/new' || path === '/lodgings/new/' || path.startsWith('/lodgings/new')
   );
 
-  const getInitialTab = () => {
-    const user = db.currentUser;
-    if (!user) return 'dashboard';
-    const isAdmin = user.role === UserRole.ADMIN;
-    if (!user.isApproved && !isAdmin) {
-      return 'bookings';
-    }
-    return 'dashboard';
-  };
+  const getInitialTab = () => 'dashboard';
   
   const [activeTab, setActiveTab] = useState(getInitialTab()); 
   const [lang, setLang] = useState<Language>((db.currentUser?.preferredLanguage as Language) || 'he');
@@ -115,12 +107,7 @@ const App: React.FC = () => {
         if (user.preferredLanguage) {
           setLang(user.preferredLanguage as Language);
         }
-        const isAdmin = user.role === UserRole.ADMIN;
-        if (!user.isApproved && !isAdmin) {
-          setActiveTab('bookings');
-        } else {
-          setActiveTab('dashboard');
-        }
+        setActiveTab('dashboard');
       })
       .catch((err) => {
         if (cancelled) return;
@@ -137,32 +124,18 @@ const App: React.FC = () => {
     const user = db.currentUser;
     if (!user) return;
 
-    const isAdmin = user.role === UserRole.ADMIN;
-    
-    let validTabs: string[] = [];
-    
-    if (!user.isApproved && !isAdmin) {
-      validTabs = ['bookings'];
-    } else {
-      validTabs = ['dashboard', 'bot_simulator', /* 'integrations', */ 'units', 'bookings', 'calendar', 'reviews', 'contacts', 'facilities'];
-      
-      if (user.role === UserRole.ADMIN || user.role === UserRole.COMPLEX_OWNER) {
-        validTabs.push('accounts');
-      }
-      
-      if (user.role === UserRole.ADMIN) {
-        validTabs.push('users', 'settings');
-      }
+    const validTabs: string[] = ['dashboard', 'bot_simulator', /* 'integrations', */ 'units', 'bookings', 'calendar', 'reviews', 'contacts', 'facilities'];
+
+    if (user.role === UserRole.ADMIN || user.role === UserRole.COMPLEX_OWNER) {
+      validTabs.push('accounts');
     }
-    
-    const isValidTab = validTabs.includes(activeTab);
-    
-    if (!isValidTab) {
-      if (!user.isApproved && !isAdmin) {
-        setActiveTab('bookings');
-      } else {
-        setActiveTab('dashboard');
-      }
+
+    if (user.role === UserRole.ADMIN) {
+      validTabs.push('users', 'settings');
+    }
+
+    if (!validTabs.includes(activeTab)) {
+      setActiveTab('dashboard');
     }
   }, [db.currentUser?.isApproved, db.currentUser?.role, db.currentUser?.id, activeTab]);
 
@@ -212,11 +185,7 @@ const App: React.FC = () => {
     if (user.preferredLanguage) {
       setLang(user.preferredLanguage as Language);
     }
-    if (!user.isApproved && user.role !== UserRole.ADMIN) {
-      setActiveTab('bookings');
-    } else {
-      setActiveTab('dashboard');
-    }
+    setActiveTab('dashboard');
   };
 
   const handleRegister = (user: User, token?: string) => {
@@ -225,11 +194,7 @@ const App: React.FC = () => {
     }
     const updatedUsers = [user, ...db.users];
     setDb({ ...db, users: updatedUsers, currentUser: user });
-    if (!user.isApproved && user.role !== UserRole.ADMIN) {
-      setActiveTab('bookings');
-    } else {
-      setActiveTab('dashboard');
-    }
+    setActiveTab('dashboard');
   };
 
   const handleDeploy = () => {
@@ -250,19 +215,6 @@ const App: React.FC = () => {
   const getMenuItems = () => {
     const user = db.currentUser;
     if (!user) return [];
-
-    const isAdmin = user.role === UserRole.ADMIN;
-    
-    if (user.role === UserRole.CLIENT || user.role === UserRole.CUSTOMER) {
-      return [
-        { id: 'bookings', label: t.bookings, icon: ClipboardList },
-        { id: 'calendar', label: t.calendar, icon: CalendarDays },
-      ];
-    }
-    
-    if (!user.isApproved && !isAdmin) {
-      return [{ id: 'bookings', label: t.bookings, icon: ClipboardList }];
-    }
 
     const items = [
       { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
