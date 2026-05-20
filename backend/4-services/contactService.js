@@ -1,14 +1,9 @@
 import contactRepository from '../5-repositories/contactRepository.js';
 
 export class ContactService {
-  async getAllContacts(user) {
-    let query = {};
-   
-    if (user.role !== 'admin' && user.accountId) {
-      query.accountId = user.accountId;
-    }
-
-    const contacts = await contactRepository.findAll(query);
+  async getAllContacts(_user) {
+    // DEV MODE: every user sees every contact.
+    const contacts = await contactRepository.findAll({});
     return contacts.map(c => c.toJSON());
   }
 
@@ -19,9 +14,7 @@ export class ContactService {
       throw new Error('Contact not found');
     }
 
-    if (user.role !== 'admin' && contact.accountId?.toString() !== user.accountId?.toString()) {
-      throw new Error('Access denied');
-    }
+    // DEV MODE: no ownership check.
 
     return contact.toJSON();
   }
@@ -34,21 +27,10 @@ export class ContactService {
   
     data.userId = user._id;
 
- 
-    if (user.role !== 'admin') {
-
-      data.accountId = contactData.accountId || user.accountId;
-      if (!data.accountId) {
-        throw new Error('accountId is required2');
-      }
-    } else {
-   
-      const accountId = contactData.accountId || user.accountId;
-      
-      if (accountId !== undefined && accountId !== null && accountId !== 0) {
-        data.accountId = accountId;
-      }
-     
+    // DEV MODE: accountId optional for all users.
+    const accountId = contactData.accountId || user.accountId;
+    if (accountId !== undefined && accountId !== null && accountId !== 0) {
+      data.accountId = accountId;
     }
 
     const contact = await contactRepository.create(data);
@@ -63,9 +45,7 @@ export class ContactService {
     }
 
  
-    if (user.role !== 'admin' && contact.accountId?.toString() !== user.accountId?.toString()) {
-      throw new Error('Access denied');
-    }
+    // DEV MODE: no ownership check.
 
     const updatedContact = await contactRepository.update(id, contactData);
     return updatedContact.toJSON();
@@ -79,9 +59,7 @@ export class ContactService {
     }
 
     // Check access
-    if (user.role !== 'admin' && contact.accountId?.toString() !== user.accountId?.toString()) {
-      throw new Error('Access denied');
-    }
+    // DEV MODE: no ownership check.
 
     await contactRepository.delete(id);
     return { message: 'Contact deleted successfully' };

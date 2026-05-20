@@ -42,6 +42,30 @@ import PublicLodgingsPage from './pages/PublicLodgingsPage';
 import { getDB } from './db';
 import { setAuthToken, usersAPI, authAPI, getAuthToken } from './api';
 
+const TAB_PATHS: Record<string, string> = {
+  dashboard: '/dashboard',
+  bot_simulator: '/bot-simulator',
+  units: '/zimmers',
+  bookings: '/bookings',
+  calendar: '/calendar',
+  reviews: '/reviews',
+  contacts: '/contacts',
+  facilities: '/facilities',
+  accounts: '/accounts',
+  users: '/users',
+  settings: '/settings',
+  integrations: '/integrations',
+};
+
+const PATH_TO_TAB: Record<string, string> = Object.fromEntries(
+  Object.entries(TAB_PATHS).map(([id, p]) => [p, id])
+);
+
+const tabFromPath = (pathname: string): string | null => {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return PATH_TO_TAB[normalized] ?? null;
+};
+
 const App: React.FC = () => {
   const [db, setDb] = useState<AppState>(getDB());
   const path = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -49,9 +73,20 @@ const App: React.FC = () => {
     path === '/lodgings/new' || path === '/lodgings/new/' || path.startsWith('/lodgings/new')
   );
 
-  const getInitialTab = () => 'dashboard';
-  
-  const [activeTab, setActiveTab] = useState(getInitialTab()); 
+  const getInitialTab = () => {
+    if (typeof window === 'undefined') return 'dashboard';
+    return tabFromPath(window.location.pathname) ?? 'dashboard';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getInitialTab());
+
+  const setActiveTab = (tabId: string) => {
+    setActiveTabState(tabId);
+    const targetPath = TAB_PATHS[tabId];
+    if (typeof window !== 'undefined' && targetPath && window.location.pathname !== targetPath) {
+      window.history.pushState({ tab: tabId }, '', targetPath);
+    }
+  };
   const [lang, setLang] = useState<Language>((db.currentUser?.preferredLanguage as Language) || 'he');
 
   useEffect(() => {
@@ -59,6 +94,10 @@ const App: React.FC = () => {
       const path = window.location.pathname;
       const isPublic = path === '/lodgings/new' || path === '/lodgings/new/' || path.startsWith('/lodgings/new');
       setIsPublicPage(isPublic);
+      if (!isPublic) {
+        const matched = tabFromPath(path);
+        if (matched) setActiveTabState(matched);
+      }
     };
     
     checkPath();
@@ -107,7 +146,8 @@ const App: React.FC = () => {
         if (user.preferredLanguage) {
           setLang(user.preferredLanguage as Language);
         }
-        setActiveTab('dashboard');
+        const fromUrl = tabFromPath(window.location.pathname);
+        if (!fromUrl) setActiveTab('dashboard');
       })
       .catch((err) => {
         if (cancelled) return;
@@ -124,15 +164,7 @@ const App: React.FC = () => {
     const user = db.currentUser;
     if (!user) return;
 
-    const validTabs: string[] = ['dashboard', 'bot_simulator', /* 'integrations', */ 'units', 'bookings', 'calendar', 'reviews', 'contacts', 'facilities'];
-
-    if (user.role === UserRole.ADMIN || user.role === UserRole.COMPLEX_OWNER) {
-      validTabs.push('accounts');
-    }
-
-    if (user.role === UserRole.ADMIN) {
-      validTabs.push('users', 'settings');
-    }
+    const validTabs: string[] = ['dashboard', 'bot_simulator', /* 'integrations', */ 'units', 'bookings', 'calendar', 'reviews', 'contacts', 'facilities', 'accounts', 'users', 'settings'];
 
     if (!validTabs.includes(activeTab)) {
       setActiveTab('dashboard');
@@ -185,7 +217,8 @@ const App: React.FC = () => {
     if (user.preferredLanguage) {
       setLang(user.preferredLanguage as Language);
     }
-    setActiveTab('dashboard');
+    const fromUrl = tabFromPath(window.location.pathname);
+    setActiveTab(fromUrl ?? 'dashboard');
   };
 
   const handleRegister = (user: User, token?: string) => {
@@ -194,7 +227,8 @@ const App: React.FC = () => {
     }
     const updatedUsers = [user, ...db.users];
     setDb({ ...db, users: updatedUsers, currentUser: user });
-    setActiveTab('dashboard');
+    const fromUrl = tabFromPath(window.location.pathname);
+    setActiveTab(fromUrl ?? 'dashboard');
   };
 
   const handleDeploy = () => {
@@ -226,16 +260,10 @@ const App: React.FC = () => {
       { id: 'reviews', label: t.reviews, icon: Star },
       { id: 'contacts', label: t.contacts, icon: Users },
       { id: 'facilities', label: t.facilities, icon: Puzzle },
+      { id: 'accounts', label: t.accounts, icon: Briefcase },
+      { id: 'users', label: t.users, icon: UserCog },
+      { id: 'settings', label: t.settings, icon: Database },
     ];
-
-    if (user.role === UserRole.ADMIN || user.role === UserRole.COMPLEX_OWNER) {
-      items.push({ id: 'accounts', label: t.accounts, icon: Briefcase });
-    }
-
-    if (user.role === UserRole.ADMIN) {
-      items.push({ id: 'users', label: t.users, icon: UserCog });
-      items.push({ id: 'settings', label: t.settings, icon: Database });
-    }
 
     return items;
   };

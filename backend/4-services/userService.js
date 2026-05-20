@@ -2,30 +2,9 @@ import userRepository from '../5-repositories/userRepository.js';
 import userSettingsRepository from '../5-repositories/userSettingsRepository.js';
 
 export class UserService {
-  async getAllUsers(user) {
-    let query = {};
-    
-    // Filter based on role
-    if (user.role === 'admin') {
-      // Admin sees all users
-      query = {};
-    } else if (user.role === 'complex_owner' || user.role === 'manager') {
-      // Complex owner/manager sees only users whose accounts are linked to them
-      // Need to find accounts with userId = user._id, then find users linked to those accounts
-      const accountRepository = (await import('../5-repositories/accountRepository.js')).default;
-      const accounts = await accountRepository.findAll({ userId: user._id });
-      const accountIds = accounts.map(a => a._id);
-      // For now, complex_owner/manager sees only themselves (since Account → User relationship)
-      query._id = user._id;
-    } else if (user.role === 'zimmer_owner') {
-      // Zimmer owner sees only themselves
-      query._id = user._id;
-    } else {
-      // Other roles (client, customer) see only themselves
-      query._id = user._id;
-    }
-
-    const users = await userRepository.findAll(query);
+  async getAllUsers(_user) {
+    // DEV MODE: every user sees every user.
+    const users = await userRepository.findAll({});
     // Load UserSettings for each user
     const usersWithSettings = await Promise.all(users.map(async (u) => {
       const userJson = u.toJSON();
@@ -47,11 +26,7 @@ export class UserService {
       throw new Error('User not found');
     }
 
-    // Users can only see their own profile unless they're admin
-    if (user.role !== 'admin' && user._id.toString() !== id) {
-      throw new Error('Access denied');
-    }
-
+    // DEV MODE: any authenticated user may view any profile.
     const userJson = foundUser.toJSON();
     // Load UserSettings
     if (foundUser.userSettingsId) {
@@ -63,12 +38,8 @@ export class UserService {
     return userJson;
   }
 
-  async createUser(userData, currentUser) {
-    // Only admin can create users
-    if (currentUser.role !== 'admin') {
-      throw new Error('Access denied');
-    }
-
+  async createUser(userData, _currentUser) {
+    // DEV MODE: any authenticated user may create users.
     // Create UserSettings first (required for every user)
     // Determine ownerType based on role or userData
     let ownerType = 'client'; // default for new users (client role)
@@ -97,12 +68,8 @@ export class UserService {
     return newUser.toJSON();
   }
 
-  async updateUser(id, userData, currentUser) {
-    // Users can only update their own profile unless they're admin
-    if (currentUser.role !== 'admin' && currentUser._id.toString() !== id) {
-      throw new Error('Access denied');
-    }
-
+  async updateUser(id, userData, _currentUser) {
+    // DEV MODE: any authenticated user may update any user.
     // Get existing user to check for userSettingsId
     const existingUser = await userRepository.findById(id);
     if (!existingUser) {
@@ -169,12 +136,8 @@ export class UserService {
     return userJson;
   }
 
-  async deleteUser(id, currentUser) {
-    // Only admin can delete users
-    if (currentUser.role !== 'admin') {
-      throw new Error('Access denied');
-    }
-
+  async deleteUser(id, _currentUser) {
+    // DEV MODE: any authenticated user may delete any user.
     const deletedUser = await userRepository.delete(id);
     
     if (!deletedUser) {

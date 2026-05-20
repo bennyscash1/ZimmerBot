@@ -6,24 +6,10 @@ import { google } from 'googleapis';
 
 export class SettingsService {
   // Get statistics (units count, bookings count)
-  async getStatistics(user) {
-    let unitsCount = 0;
-    let bookingsCount = 0;
-
-    if (user.role === 'admin') {
-      // Admin sees all
-      unitsCount = await unitRepository.findAll().then(units => units.length);
-      bookingsCount = await bookingRepository.findAll().then(bookings => bookings.length);
-    } else if (user.accountId) {
-      // Other users see only their account's data
-      unitsCount = await unitRepository.findByAccountId(user.accountId).then(units => units.length);
-      // For bookings, we need to get units first, then bookings
-      const units = await unitRepository.findByAccountId(user.accountId);
-      const unitIds = units.map(u => u._id.toString());
-      const allBookings = await bookingRepository.findAll();
-      bookingsCount = allBookings.filter(b => unitIds.includes(b.unitId?.toString())).length;
-    }
-
+  async getStatistics(_user) {
+    // DEV MODE: every user sees global stats.
+    const unitsCount = await unitRepository.findAll().then(units => units.length);
+    const bookingsCount = await bookingRepository.findAll().then(bookings => bookings.length);
     return {
       units: unitsCount,
       bookings: bookingsCount

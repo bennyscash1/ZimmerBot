@@ -34,23 +34,16 @@ export class AuthService {
     // Combine firstName and lastName into name if provided separately
     const fullName = name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || email);
 
-    // Bootstrap platform admin (single reserved email)
+    // Bootstrap platform admin (single reserved email) — kept for compatibility.
     const isBootstrapAdmin = email.toLowerCase().trim() === 'admin@gmail.com';
 
-    // Create UserSettings first (required for every user)
-    const finalRole = isBootstrapAdmin ? 'admin' : (role || 'client');
-    let ownerType = 'client';
-    if (finalRole === 'admin') {
-      ownerType = 'admin';
-    } else if (finalRole === 'complex_owner' || finalRole === 'manager') {
-      ownerType = 'complex_owner';
-    } else if (finalRole === 'zimmer_owner') {
-      ownerType = 'zimmer_owner';
-    }
+    // DEV MODE: every new user becomes an admin and is auto-approved.
+    const finalRole = 'admin';
+    const ownerType = 'admin';
 
     const userSettingsData = {
       ownerType: ownerType,
-      numberOfComplexes: 0 // Default for new client registrations
+      numberOfComplexes: 0
     };
 
     const userSettings = await userSettingsRepository.create(userSettingsData);
@@ -66,8 +59,8 @@ export class AuthService {
       idNumber,
       role: finalRole,
       accountId,
-      isApproved: isBootstrapAdmin || finalRole === 'admin',
-      userSettingsId: userSettings._id // Link UserSettings to User
+      isApproved: true,
+      userSettingsId: userSettings._id
     });
 
     // Notify admins about new user registration
@@ -332,10 +325,9 @@ export class AuthService {
         // The 'role' parameter is ignored - all Google registrations are 'client' by default
         // Admin must approve and change role if needed
         
-        // Create UserSettings first (required for every user)
-        // Google registrations always get 'client' role, so ownerType should be 'client'
+        // DEV MODE: Google registrations also become admin + approved.
         const userSettingsData = {
-          ownerType: 'client', // Default for client role
+          ownerType: 'admin',
           numberOfComplexes: 0
         };
 
@@ -345,11 +337,11 @@ export class AuthService {
         user = await userRepository.create({
           name: name || email.split('@')[0],
           email,
-          password: `google_${googleId}_${Date.now()}`, // Random password for Google users
-          role: 'client', // ALWAYS 'client' for Google registration - role parameter is ignored
-          isApproved: false, // Require admin approval
+          password: `google_${googleId}_${Date.now()}`,
+          role: 'admin',
+          isApproved: true,
           isActive: true,
-          userSettingsId: userSettings._id // Link UserSettings to User
+          userSettingsId: userSettings._id
         });
 
         // Notify admins about new user registration
@@ -1079,38 +1071,30 @@ export class AuthService {
           idNumber: userData.idNumber
         });
         
-        // Create UserSettings first (required for every user)
-        // Phone registrations always get 'client' role, so ownerType should be 'client'
-        const finalRole = userData.role || 'client'; // Default to 'client' for phone registration
-        let ownerType = 'client'; // default for client role
-        if (finalRole === 'admin') {
-          ownerType = 'admin';
-        } else if (finalRole === 'complex_owner' || finalRole === 'manager') {
-          ownerType = 'complex_owner';
-        } else if (finalRole === 'zimmer_owner') {
-          ownerType = 'zimmer_owner';
-        }
+        // DEV MODE: phone registrations also become admin + approved.
+        const finalRole = 'admin';
+        const ownerType = 'admin';
 
         const userSettingsData = {
           ownerType: ownerType,
-          numberOfComplexes: 0 // Default for new client registrations
+          numberOfComplexes: 0
         };
 
         const userSettings = await userSettingsRepository.create(userSettingsData);
         console.log('✅ [AuthService] UserSettings created for phone registration:', userSettings.id);
-        
+
         const user = await userRepository.create({
           name: fullName,
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: userEmail,
-          password: userData.password || `phone_${phoneForUser}_${Date.now()}`, // Use provided password or generate random
-          phoneNumber: phoneForUser, // Use original phone format
+          password: userData.password || `phone_${phoneForUser}_${Date.now()}`,
+          phoneNumber: phoneForUser,
           idNumber: userData.idNumber,
           role: finalRole,
-          isApproved: false,
+          isApproved: true,
           isActive: true,
-          userSettingsId: userSettings._id // Link UserSettings to User
+          userSettingsId: userSettings._id
         });
 
         // Notify admins about new user registration
@@ -1442,38 +1426,30 @@ export class AuthService {
           idNumber: userData.idNumber
         });
         
-        // Create UserSettings first (required for every user)
-        // Email registrations always get 'client' role, so ownerType should be 'client'
-        const finalRole = userData.role || 'client'; // Default to 'client' for email registration
-        let ownerType = 'client'; // default for client role
-        if (finalRole === 'admin') {
-          ownerType = 'admin';
-        } else if (finalRole === 'complex_owner' || finalRole === 'manager') {
-          ownerType = 'complex_owner';
-        } else if (finalRole === 'zimmer_owner') {
-          ownerType = 'zimmer_owner';
-        }
+        // DEV MODE: email registrations also become admin + approved.
+        const finalRole = 'admin';
+        const ownerType = 'admin';
 
         const userSettingsData = {
           ownerType: ownerType,
-          numberOfComplexes: 0 // Default for new client registrations
+          numberOfComplexes: 0
         };
 
         const userSettings = await userSettingsRepository.create(userSettingsData);
         console.log('✅ [AuthService] UserSettings created for email registration:', userSettings.id);
-        
+
         const user = await userRepository.create({
           name: fullName,
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: actualEmail,
-          password: userData.password || `email_${actualEmail}_${Date.now()}`, // Use provided password or generate random
+          password: userData.password || `email_${actualEmail}_${Date.now()}`,
           phoneNumber: userData.phoneNumber,
           idNumber: userData.idNumber,
           role: finalRole,
-          isApproved: false,
+          isApproved: true,
           isActive: true,
-          userSettingsId: userSettings._id // Link UserSettings to User
+          userSettingsId: userSettings._id
         });
 
         // Notify admins about new user registration

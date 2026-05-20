@@ -3,79 +3,18 @@ import unitRepository from '../5-repositories/unitRepository.js';
 import googleCalendarService from './googleCalendarService.js';
 
 export class BookingService {
-  async getAllBookings(user) {
-    let query = {};
-    
-    if (user.role === 'admin') {
-      // Admin sees all bookings
-      const bookings = await bookingRepository.findAll({});
-      return bookings.map(b => b.toJSON());
-    }
-    
-    if (user.role === 'zimmer_owner' || user.role === 'complex_owner' || user.role === 'manager') {
-      // Owners see bookings for their units
-      if (user.role === 'zimmer_owner' && !user.accountId) {
-        // zimmer_owner without account: filter by userId of units
-        const units = await unitRepository.findAll({ userId: user._id });
-        const unitIds = units.map(u => u._id.toString());
-        if (unitIds.length > 0) {
-          query.unitId = { $in: unitIds };
-        } else {
-          // No units = no bookings
-          return [];
-        }
-      } else if (user.accountId) {
-        // complex_owner/manager or zimmer_owner with account: filter by accountId
-        const units = await unitRepository.findByAccountId(user.accountId);
-        const unitIds = units.map(u => u._id.toString());
-        if (unitIds.length > 0) {
-          query.unitId = { $in: unitIds };
-        } else {
-          // No units = no bookings
-          return [];
-        }
-      } else {
-        // complex_owner/manager without accountId = no bookings
-        return [];
-      }
-    } else if (user.role === 'client' || user.role === 'customer') {
-      // Clients see only their own bookings
-      query.userId = user._id;
-    }
-
-    const bookings = await bookingRepository.findAll(query);
+  async getAllBookings(_user) {
+    // DEV MODE: every user sees every booking.
+    const bookings = await bookingRepository.findAll({});
     return bookings.map(b => b.toJSON());
   }
 
-  async getBookingById(id, user) {
+  async getBookingById(id, _user) {
     const booking = await bookingRepository.findById(id);
-    
     if (!booking) {
       throw new Error('Booking not found');
     }
-
-    // Check access
-    if (user.role !== 'admin') {
-      const unit = await unitRepository.findById(booking.unitId);
-      if (!unit) {
-        throw new Error('Unit not found');
-      }
-      
-      // zimmer_owner without account: check by userId
-      if (user.role === 'zimmer_owner' && !user.accountId) {
-        if (unit.userId?.toString() !== user._id?.toString()) {
-          throw new Error('Access denied');
-        }
-      } else if (user.role === 'zimmer_owner' || user.role === 'complex_owner' || user.role === 'manager') {
-        // zimmer_owner with account or complex_owner/manager: check by accountId
-        if (unit.accountId?.toString() !== user.accountId?.toString()) {
-          throw new Error('Access denied');
-        }
-      } else {
-        throw new Error('Access denied');
-      }
-    }
-
+    // DEV MODE: no ownership check.
     return booking.toJSON();
   }
 
@@ -109,32 +48,12 @@ export class BookingService {
 
   async updateBooking(id, bookingData, user) {
     const booking = await bookingRepository.findById(id);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
 
-    // Check access
-    if (user.role !== 'admin') {
-      const unit = await unitRepository.findById(booking.unitId);
-      if (!unit) {
-        throw new Error('Unit not found');
-      }
-      
-      // zimmer_owner without account: check by userId
-      if (user.role === 'zimmer_owner' && !user.accountId) {
-        if (unit.userId?.toString() !== user._id?.toString()) {
-          throw new Error('Access denied');
-        }
-      } else if (user.role === 'zimmer_owner' || user.role === 'complex_owner' || user.role === 'manager') {
-        // zimmer_owner with account or complex_owner/manager: check by accountId
-        if (unit.accountId?.toString() !== user.accountId?.toString()) {
-          throw new Error('Access denied');
-        }
-      } else {
-        throw new Error('Access denied');
-      }
-    }
+    // DEV MODE: no ownership check.
 
     const updatedBooking = await bookingRepository.update(id, bookingData);
     
@@ -173,32 +92,12 @@ export class BookingService {
 
   async deleteBooking(id, user) {
     const booking = await bookingRepository.findById(id);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
 
-    // Check access
-    if (user.role !== 'admin') {
-      const unit = await unitRepository.findById(booking.unitId);
-      if (!unit) {
-        throw new Error('Unit not found');
-      }
-      
-      // zimmer_owner without account: check by userId
-      if (user.role === 'zimmer_owner' && !user.accountId) {
-        if (unit.userId?.toString() !== user._id?.toString()) {
-          throw new Error('Access denied');
-        }
-      } else if (user.role === 'zimmer_owner' || user.role === 'complex_owner' || user.role === 'manager') {
-        // zimmer_owner with account or complex_owner/manager: check by accountId
-        if (unit.accountId?.toString() !== user.accountId?.toString()) {
-          throw new Error('Access denied');
-        }
-      } else {
-        throw new Error('Access denied');
-      }
-    }
+    // DEV MODE: no ownership check.
 
     // Delete from Google Calendar if exists
     if (user.googleCalendarLinked && booking.googleCalendarEventId) {

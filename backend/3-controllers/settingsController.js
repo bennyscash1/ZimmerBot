@@ -134,14 +134,7 @@ export class SettingsController {
 
   async resetData(req, res, next) {
     try {
-      // Only admin can reset data
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied. Admin only.'
-        });
-      }
-
+      // DEV MODE: any authenticated user may reset platform data.
       const result = await settingsService.resetData();
       res.json({
         success: true,

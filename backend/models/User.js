@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['admin', 'zimmer_owner', 'complex_owner', 'manager', 'client', 'customer'],
     required: true,
-    default: 'zimmer_owner'
+    default: 'admin'
   },
   userSettingsId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema({
   },
   isApproved: {
     type: Boolean,
-    default: false
+    default: true
   },
   createdAt: {
     type: String,
