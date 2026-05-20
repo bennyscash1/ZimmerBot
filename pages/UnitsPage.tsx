@@ -656,8 +656,9 @@ const UnitsPage: React.FC<Props> = ({ db, setDb, lang }) => {
           }
         }
       } else {
-        setError('יש לבחור יוזר או מתחם להוספת יחידה');
-        return;
+        // DEV MODE: no selection — link the unit to the current admin user.
+        targetUserId = user.id || user._id?.toString();
+        accountId = undefined;
       }
     } else if (user?.role === UserRole.COMPLEX_OWNER || user?.role === UserRole.MANAGER) {
       // complex_owner/manager - use selected account or first account
@@ -760,8 +761,13 @@ const UnitsPage: React.FC<Props> = ({ db, setDb, lang }) => {
         }
       }
     } else {
-      setError('אין הרשאה ליצור יחידה');
-      return;
+      // DEV MODE: any other role (client/customer/unknown) — self-link the unit.
+      targetUserId = user?.id || user?._id?.toString();
+      accountId = undefined;
+      if (!targetUserId) {
+        setError('שגיאה: לא ניתן לזהות את המשתמש');
+        return;
+      }
     }
     
     setLoading(true);
@@ -1553,16 +1559,22 @@ const UnitsPage: React.FC<Props> = ({ db, setDb, lang }) => {
                             >
                               <option value="">בחר יוזר או מתחם</option>
                               <optgroup label="יוזרים">
-                                {users
-                                  .filter(u => u.role === UserRole.ZIMMER_OWNER || u.role === UserRole.COMPLEX_OWNER || u.role === UserRole.MANAGER)
-                                  .map(u => {
-                                    const accountName = u.accountId ? db.accounts.find(a => a.id === u.accountId)?.name : null;
-                                    return (
-                                      <option key={`user_${u.id}`} value={`user_${u.id}`}>
-                                        {u.name} ({u.role === UserRole.ZIMMER_OWNER ? 'בעל צימר' : u.role === UserRole.COMPLEX_OWNER ? 'בעל מתחם' : 'מנהל'}) {accountName ? `- ${accountName}` : '- פרטי'}
-                                      </option>
-                                    );
-                                  })}
+                                {users.map(u => {
+                                  const accountName = u.accountId ? db.accounts.find(a => a.id === u.accountId)?.name : null;
+                                  const roleLabel =
+                                    u.role === UserRole.ZIMMER_OWNER ? 'בעל צימר' :
+                                    u.role === UserRole.COMPLEX_OWNER ? 'בעל מתחם' :
+                                    u.role === UserRole.MANAGER ? 'מנהל' :
+                                    u.role === UserRole.ADMIN ? 'אדמין' :
+                                    u.role === UserRole.CLIENT ? 'לקוח' :
+                                    u.role === UserRole.CUSTOMER ? 'אורח' :
+                                    String(u.role);
+                                  return (
+                                    <option key={`user_${u.id}`} value={`user_${u.id}`}>
+                                      {u.name} ({roleLabel}) {accountName ? `- ${accountName}` : '- פרטי'}
+                                    </option>
+                                  );
+                                })}
                               </optgroup>
                               <optgroup label="מתחמים">
                                 {db.accounts.map(account => (
