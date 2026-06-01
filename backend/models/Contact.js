@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const contactSchema = new mongoose.Schema({
   accountId: {
-    type: Number,
+    type: mongoose.Schema.Types.ObjectId,
     required: false, // Not required for admin users
     ref: 'Account'
   },
